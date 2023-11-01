@@ -11,14 +11,12 @@ public class Main {
         String appid = "68b17a4a952ff9a6cc4a14c66926839c"; // Replace with your actual API key
 
         try {
-            // Find city ID
             int cityId = findCityId(s_city, appid);
 
             if (cityId != 0) {
                 System.out.println("city: " + s_city);
                 System.out.println("city_id= " + cityId);
 
-                // Fetch weather data using the obtained city_id
                 WeatherData weatherData = getWeatherData(cityId, appid);
                 if (weatherData != null) {
                     System.out.println("conditions: " + weatherData.getDescription());
@@ -52,7 +50,6 @@ public class Main {
 
         String findResponseJSON = findResponse.toString();
 
-        // Manually parse JSON and extract the correct city_id
         String cityIdPattern = "\"id\":(\\d+)";
         Pattern pattern = Pattern.compile(cityIdPattern);
         Matcher matcher = pattern.matcher(findResponseJSON);
@@ -78,7 +75,6 @@ public class Main {
 
         String weatherResponseJSON = weatherResponse.toString();
 
-        // Manually parse JSON and extract weather data
         String descriptionPattern = "\"description\":\"([^\"]+)\"";
         String tempPattern = "\"temp\":([\\d.]+)";
         String minTempPattern = "\"temp_min\":([\\d.]+)";
