@@ -1,0 +1,147 @@
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+public class Main {
+    public static void main(String[] args) {
+        String s_city = "Kaskelen";
+        String appid = "68b17a4a952ff9a6cc4a14c66926839c"; // Replace with your actual API key
+
+        try {
+            // Find city ID
+            int cityId = findCityId(s_city, appid);
+
+            if (cityId != 0) {
+                System.out.println("city: " + s_city);
+                System.out.println("city_id= " + cityId);
+
+                // Fetch weather data using the obtained city_id
+                WeatherData weatherData = getWeatherData(cityId, appid);
+                if (weatherData != null) {
+                    System.out.println("conditions: " + weatherData.getDescription());
+                    System.out.println("temp: " + weatherData.getTemperature());
+                    System.out.println("temp_min: " + weatherData.getMinTemperature());
+                    System.out.println("temp_max: " + weatherData.getMaxTemperature());
+                } else {
+                    System.out.println("Failed to retrieve weather data.");
+                }
+            } else {
+                System.out.println("City ID not found.");
+            }
+
+        } catch (Exception e) {
+            System.out.println("Exception: " + e.getMessage());
+        }
+    }
+
+    private static int findCityId(String cityName, String apiKey) throws Exception {
+        URL findUrl = new URL("http://api.openweathermap.org/data/2.5/find?q=" + cityName + "&type=like&units=metric&APPID=" + apiKey);
+        HttpURLConnection findConnection = (HttpURLConnection) findUrl.openConnection();
+        findConnection.setRequestMethod("GET");
+        BufferedReader findReader = new BufferedReader(new InputStreamReader(findConnection.getInputStream()));
+        StringBuilder findResponse = new StringBuilder();
+        String line;
+        while ((line = findReader.readLine()) != null) {
+            findResponse.append(line);
+        }
+        findReader.close();
+        findConnection.disconnect();
+
+        String findResponseJSON = findResponse.toString();
+
+        // Manually parse JSON and extract the correct city_id
+        String cityIdPattern = "\"id\":(\\d+)";
+        Pattern pattern = Pattern.compile(cityIdPattern);
+        Matcher matcher = pattern.matcher(findResponseJSON);
+        if (matcher.find()) {
+            return Integer.parseInt(matcher.group(1));
+        }
+
+        return 0;
+    }
+
+    private static WeatherData getWeatherData(int cityId, String apiKey) throws Exception {
+        URL weatherUrl = new URL("http://api.openweathermap.org/data/2.5/weather?id=" + cityId + "&units=metric&lang=ru&APPID=" + apiKey);
+        HttpURLConnection weatherConnection = (HttpURLConnection) weatherUrl.openConnection();
+        weatherConnection.setRequestMethod("GET");
+        BufferedReader weatherReader = new BufferedReader(new InputStreamReader(weatherConnection.getInputStream()));
+        StringBuilder weatherResponse = new StringBuilder();
+        String line;
+        while ((line = weatherReader.readLine()) != null) {
+            weatherResponse.append(line);
+        }
+        weatherReader.close();
+        weatherConnection.disconnect();
+
+        String weatherResponseJSON = weatherResponse.toString();
+
+        // Manually parse JSON and extract weather data
+        String descriptionPattern = "\"description\":\"([^\"]+)\"";
+        String tempPattern = "\"temp\":([\\d.]+)";
+        String minTempPattern = "\"temp_min\":([\\d.]+)";
+        String maxTempPattern = "\"temp_max\":([\\d.]+)";
+
+        Pattern descPattern = Pattern.compile(descriptionPattern);
+        Pattern tempPatternMatcher = Pattern.compile(tempPattern);
+        Pattern minTempPatternMatcher = Pattern.compile(minTempPattern);
+        Pattern maxTempPatternMatcher = Pattern.compile(maxTempPattern);
+
+        Matcher descMatcher = descPattern.matcher(weatherResponseJSON);
+        Matcher tempMatcher = tempPatternMatcher.matcher(weatherResponseJSON);
+        Matcher minTempMatcher = minTempPatternMatcher.matcher(weatherResponseJSON);
+        Matcher maxTempMatcher = maxTempPatternMatcher.matcher(weatherResponseJSON);
+
+        String description = null;
+        double temperature = 0;
+        double minTemperature = 0;
+        double maxTemperature = 0;
+
+        if (descMatcher.find()) {
+            description = descMatcher.group(1);
+        }
+        if (tempMatcher.find()) {
+            temperature = Double.parseDouble(tempMatcher.group(1));
+        }
+        if (minTempMatcher.find()) {
+            minTemperature = Double.parseDouble(minTempMatcher.group(1));
+        }
+        if (maxTempMatcher.find()) {
+            maxTemperature = Double.parseDouble(maxTempMatcher.group(1));
+        }
+
+        return new WeatherData(description, temperature, minTemperature, maxTemperature);
+    }
+}
+
+class WeatherData {
+    private String description;
+    private double temperature;
+    private double minTemperature;
+    private double maxTemperature;
+
+    public WeatherData(String description, double temperature, double minTemperature, double maxTemperature) {
+        this.description = description;
+        this.temperature = temperature;
+        this.minTemperature = minTemperature;
+        this.maxTemperature = maxTemperature;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public double getTemperature() {
+        return temperature;
+    }
+
+    public double getMinTemperature() {
+        return minTemperature;
+    }
+
+    public double getMaxTemperature() {
+        return maxTemperature;
+    }
+}
